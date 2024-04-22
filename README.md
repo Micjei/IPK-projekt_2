@@ -58,11 +58,6 @@ Po zapnutí serveru a případného nastavení parametrů se vytvoří UDP a TCP
 
 ## Bibliografie
 
-[<a name="IPK-projekt_1"></a><a href="#1">1</a>] [Project1] Dolejška, D. Client for a chat server using IPK24-CHAT protocol [online]. February 2024.  
-[cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%201
-
-[<a name="IPK-projekt_1"></a><a href="#2">2</a>] [Project2] Dolejška, D. Chat server using IPK24-CHAT protocol [online]. February 2024.  
-[cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%202/iota
-
-[<a name="IPK-projekt_1"></a><a href="#3">3</a>] [IPK-projekt_1] xbabus01 Client for a chat server using IPK24-CHAT protocol [online]. April 2024.  
-[cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/xbabus01/IPK-projekt_1
+[<a name="Project1"></a><a href="#1">1</a>] [Project1] Dolejška, D. Client for a chat server using IPK24-CHAT protocol [online]. February 2024. [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%201
+[<a name="Project2"></a><a href="#2">2</a>] [Project2] Dolejška, D. Chat server using IPK24-CHAT protocol [online]. February 2024. [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%202/iota
+[<a name="IPK-projekt_1"></a><a href="#3">3</a>] [IPK-projekt_1] xbabus01 Client for a chat server using IPK24-CHAT protocol [online]. April 2024. [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/xbabus01/IPK-projekt_1
