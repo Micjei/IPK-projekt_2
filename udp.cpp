@@ -24,8 +24,6 @@ void UDPClient::handleUDPClient(UDPClient* udpClient, char* buffer) {
     uint8_t messageType = buffer[0];
     uint16_t messageID = (buffer[1] << 8) | buffer[2];
 
-    //cout << "MESSAGE WITH: " << messageID << " CAME." << endl;
-    
     // handle message with same messageID, (only send confirm)..
     if(messageType != 0x00){
         for (auto it = sentMessages.begin(); it != sentMessages.end(); ) {
@@ -39,8 +37,6 @@ void UDPClient::handleUDPClient(UDPClient* udpClient, char* buffer) {
             });
 
             if (clientUDP != clients.end()) {
-                //cout << "something came twice" << endl;
-                //cout << "Message with ID " << messageID << " already exists for client " << udpClient->getUsername() << endl;
                 sendConfirmMessage(messageID);
                 return;
             }
@@ -71,8 +67,7 @@ void UDPClient::handleUDPClient(UDPClient* udpClient, char* buffer) {
             handleByeMessage(udpClient, buffer);
             break;
         default:
-            cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "autorizovany BULLSHIT" << endl;
-            //cout << "Received data: " << messageType << endl;
+            cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "Authorized unknown command" << endl;
             break;
         }
     } else {
@@ -85,8 +80,7 @@ void UDPClient::handleUDPClient(UDPClient* udpClient, char* buffer) {
             handleAuth(messageID, udpClient, buffer);
             break;
         default:
-            cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "neautorizovaný BULLSHIT" << endl;
-            //cout << "Received data: " << messageType << endl;
+            cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "Nonauthorized unknown command" << endl;
             break;
         }   
     }
@@ -100,13 +94,11 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
     string secret;
     size_t usernameEnd = 3;
 
-    // Find username (first)
     while (clientBuffer[usernameEnd] != '\0') {
         usernameEnd++;
     }
     username = string(clientBuffer + 3, usernameEnd - 3);
 
-    // Find secret
     size_t secretStart = usernameEnd + 1;
     size_t secretEnd = secretStart;
     while (clientBuffer[secretEnd] != '\0') {
@@ -114,7 +106,6 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
     }
     secret = string(clientBuffer + secretStart, secretEnd - secretStart);
 
-    // Find display name
     size_t displayNameStart = secretEnd + 1;
     size_t displayNameEnd = displayNameStart;
     while (clientBuffer[displayNameEnd] != '\0') {
@@ -122,14 +113,12 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
     }
     displayName = string(clientBuffer + displayNameStart, displayNameEnd - displayNameStart);
 
-    // Define regex patterns
     regex usernameRegex("[A-Za-z0-9\\-]{1,20}");
     regex secretRegex("[A-Za-z0-9\\-]{1,128}");
     regex displayNameRegex("[\\x21-\\x7E]{1,20}");
 
     smatch match;
 
-    // Validate username
     if (!regex_match(username, usernameRegex)) {
         cerr << "Invalid username format: " << endl;
         string messageContent = "Invalid username format.";
@@ -139,7 +128,6 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
         return;
     }
 
-    // Validate displayName
     if (!regex_match(displayName, displayNameRegex)) {
         cerr << "Invalid displayName format." << endl;
         string messageContent = "Invalid displayName format.";
@@ -149,7 +137,6 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
         return;
     }
 
-    // Validate secret
     if (!regex_match(secret, secretRegex)) {
         cerr << "Invalid secret format." << endl;
         string messageContent = "Invalid secret format.";
@@ -190,36 +177,29 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
         else{
             replyContent = "Someone is already using this username\r\n";
         }
-        //cout << "Received: " << username << " " << displayName << " " << secret << endl;
         sendReplyMessage(messageID, false, replyContent);
     }
 }
 
-
 void UDPClient::handleConfirmMessage(UDPClient* udpClient, char* buffer){
     uint16_t refMessageID = (buffer[1] << 8) | buffer[2];
     
-    // Find the message with the matching messageID and username
     auto it = std::find_if(sentMessages.begin(), sentMessages.end(), [&](const MessageInfo& msg) {
         return msg.messageID == refMessageID && msg.username == getUsername();
     });
 
     if (it != sentMessages.end()) {
-        // Check if the message content is 'BYE' (0xFF)
         if (it->content.size() > 0 && it->content[0] == 0xFF) {
-            // Find the disconnected client in the clients vector
             auto disconnectedClient = std::find_if(clients.begin(), clients.end(), [&](ClientBase* client) {
                 UDPClient* udpClient = dynamic_cast<UDPClient*>(client);
                 return udpClient && udpClient->getIP() == this->ipAddress && udpClient->getPort() == this->port;
             });
 
-            //cout << "Message with messageID " << refMessageID << " and username " << this->username << " confirmed as BYE and removed." << endl;
-
             if (disconnectedClient != clients.end()) {
                 for (auto& c : clients) {
                     TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
                     if (tcpClient && tcpClient != *disconnectedClient && tcpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
-                        string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " leaved channel\r";
+                        string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " has left " + (*disconnectedClient)->getChannelID() + "\r";
                         tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
                     }
                 }
@@ -227,41 +207,30 @@ void UDPClient::handleConfirmMessage(UDPClient* udpClient, char* buffer){
                 for (auto& c : clients) {
                     UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
                     if (udpClient && udpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
-                        udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " leaved channel");
+                        udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " has left " + (*disconnectedClient)->getChannelID());
                     }
                 }
-                delete *disconnectedClient;  // Freeing the memory
-                clients.erase(disconnectedClient);  // Removing from the vector
+                delete *disconnectedClient; 
+                clients.erase(disconnectedClient);
             }
 
-            // Erase the message from the vector
             sentMessages.erase(it);
         } else {
-            // Just erase the message from the vector
             sentMessages.erase(it);
-            //cout << "Message with messageID " << refMessageID << " and username " << getUsername() << " confirmed and removed." << endl;
         }
-    } else {
-        //cout << "No message found with messageID " << refMessageID << " and username " << getUsername() << "." << endl;
     }
 }
 
-
 void UDPClient::handleByeMessage(UDPClient* udpClient, char* buffer){
-    //uint16_t refMessageID = (buffer[1] << 8) | buffer[2];
 
     vector<unsigned char> replyMessage;
 
-    //(BYE 0xFF)
     replyMessage.push_back(0xFF);
 
-    // Add messageID (2 bytes)
     uint16_t messageID = getMessageID();
     
     replyMessage.push_back((messageID >> 8) & 0xFF);
     replyMessage.push_back(messageID & 0xFF);
-
-    //sendConfirmMessage(refMessageID);
 
     cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " << "BYE" << endl;
     int bytesSent = sendto(udpServerSock, replyMessage.data(), replyMessage.size(), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
@@ -278,11 +247,9 @@ void UDPClient::handleByeMessage(UDPClient* udpClient, char* buffer){
     sentMessages.push_back(messageSent);
 
     incrementMessageID();
-    //cout << "increase in bye " << endl;
 }
 
 void UDPClient::handleJoinMessage(UDPClient* udpClient, char* buffer){
-     // Extrahování MessageID
     uint16_t refMessageID = (buffer[1] << 8) | buffer[2];
 
     int channelIDStart = 3;
@@ -304,7 +271,6 @@ void UDPClient::handleJoinMessage(UDPClient* udpClient, char* buffer){
     }
 
     cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "JOIN " << channelID << endl;
-    //cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
 
     int displayNameStart = channelIDEnd + 1;
     int displayNameEnd = displayNameStart;
@@ -314,11 +280,7 @@ void UDPClient::handleJoinMessage(UDPClient* udpClient, char* buffer){
 
     string displayName(buffer + displayNameStart, buffer + displayNameEnd);
 
-    //cout << "Join message received from " << displayName << " for channel " << channelID << endl;
-
-    if (displayName != this->displayName) {
-        //cout << "DisplayName changed from " << this->displayName << " to " << displayName << endl;
-        
+    if (displayName != this->displayName) {      
         prevDisplayName = this->displayName;
         this->displayName = displayName;
     }
@@ -362,27 +324,24 @@ void UDPClient::handleJoinMessage(UDPClient* udpClient, char* buffer){
     }
 }
 
-
 void UDPClient::handleMessage(UDPClient* udpClient, char* buffer){
     uint16_t refMessageID = (buffer[1] << 8) | buffer[2];
 
-    int displayNameEnd = 3; // Starting from index 3
+    int displayNameEnd = 3;
     while (buffer[displayNameEnd] != '\0') {
         ++displayNameEnd;
     }
 
-    // Extract DisplayName field
     string displayName(buffer + 3, buffer + displayNameEnd);
 
-    // Find the end of MessageContents field
     int messageContentStart = displayNameEnd + 1;
-    int messageContentEnd = messageContentStart; // Start from displayNameEnd + 1
+    int messageContentEnd = messageContentStart;
     while (buffer[messageContentEnd] != '\0') {
         ++messageContentEnd;
     }
 
     regex contentRegex("[\\x21-\\x7E ]{1,1400}");
-    // Extract MessageContents field
+
     string messageContent(buffer + messageContentStart, buffer + messageContentEnd);
 
     cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "MSG " << messageContent << endl;
@@ -396,7 +355,6 @@ void UDPClient::handleMessage(UDPClient* udpClient, char* buffer){
         handleByeMessage(udpClient, buffer);
         return;
     }
-    //cout << displayName << ": " << messageContent << endl; 
 
     for (auto& c : clients) {
         TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
@@ -418,9 +376,9 @@ void UDPClient::handleMessage(UDPClient* udpClient, char* buffer){
 void UDPClient::sendConfirmMessage(uint16_t refMessageID) {
     cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " << "CONFIRM" << endl;
     vector<unsigned char> confirmMessage;
-    // (confirm 0x00)
+
     confirmMessage.push_back(0x00);
-    //messageID
+
     confirmMessage.push_back((refMessageID >> 8) & 0xFF);  
     confirmMessage.push_back(refMessageID & 0xFF);
 
@@ -433,27 +391,21 @@ void UDPClient::sendConfirmMessage(uint16_t refMessageID) {
 void UDPClient::sendReplyMessage(uint16_t refMessageID, bool success, const string& messageContents) {
     vector<unsigned char> replyMessage;
 
-    // REPLY
     replyMessage.push_back(0x01);
 
-    // MessageID (2 bytes)
     uint16_t messageID = getMessageID();
     replyMessage.push_back((messageID >> 8) & 0xFF);
     replyMessage.push_back(messageID & 0xFF);
 
-    // result(1 byte)
     replyMessage.push_back(success ? 0x01 : 0x00);
 
-    // Ref_MessageID (2 bytes)
     replyMessage.push_back((refMessageID >> 8) & 0xFF);
     replyMessage.push_back(refMessageID & 0xFF);
 
-    // content
     for (char c : messageContents) {
         replyMessage.push_back(c);
     }
 
-    // zero byte
     replyMessage.push_back(0x00);
 
     int bytesSent = sendto(udpServerSock, replyMessage.data(), replyMessage.size(), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
@@ -474,10 +426,8 @@ void UDPClient::sendReplyMessage(uint16_t refMessageID, bool success, const stri
     messageSent.messageID = messageID;
     messageSent.content = replyMessage;
     sentMessages.push_back(messageSent);
-    //cout << messageID << " reply id" << endl;
 
     incrementMessageID();
-    //cout << "increase in reply " << endl;
 }
 
 void UDPClient::sendError(const string& displayName, const string& messageContents) {
@@ -494,7 +444,6 @@ void UDPClient::sendError(const string& displayName, const string& messageConten
     }
     message.push_back(0x00);
 
-    // MessageContents
     for (char c : messageContents) {
         message.push_back(c);
     }
@@ -514,8 +463,8 @@ void UDPClient::sendError(const string& displayName, const string& messageConten
     sentMessages.push_back(messageSent);
 
     incrementMessageID();
-    //cout << "increase in error " << endl;
 }
+
 void UDPClient::sendMessage(const string& displayName, const string& messageContents) {
     cout << "SENT " << ipAddress << ":" << port <<  " | " << "MSG " << messageContents << endl;
     vector<unsigned char> message;
@@ -531,7 +480,6 @@ void UDPClient::sendMessage(const string& displayName, const string& messageCont
     }
     message.push_back(0x00);
 
-    // MessageContents
     for (char c : messageContents) {
         message.push_back(c);
     }
@@ -551,7 +499,6 @@ void UDPClient::sendMessage(const string& displayName, const string& messageCont
     sentMessages.push_back(messageSent);
 
     incrementMessageID();
-    //cout << "increase in msg " << endl;
 }
 
 void UDPClient::sendAgain(const vector<unsigned char>& message){

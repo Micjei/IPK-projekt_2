@@ -20,6 +20,29 @@
 
 using namespace std;
 
+void TCPClient::handleTCPClient(ClientBase* client, const char* buffer) {
+    string bufferStr(buffer);
+
+    stringstream ss(bufferStr);
+    string command;
+    ss >> command;
+
+    if(isAuthenticated()){
+        if (command == "JOIN") {
+            handleJoin(client, buffer);
+            
+        } else if (command == "MSG") {
+            handleMessage(client, buffer);
+        } else if (command == "ERR") {
+            handleError(client, buffer);
+        }
+    } else {
+        if (command == "AUTH") {
+            handleAuth(client, bufferStr);
+        }
+    }
+}
+
 void TCPClient::handleError(ClientBase* client, const char* buffer){
     string bufferStr(buffer);
 
@@ -28,9 +51,7 @@ void TCPClient::handleError(ClientBase* client, const char* buffer){
     ss >> command >> from >> displayName >> is;
 
     string byeMessage;
-    // Kontrola, zda všechny potřebné položky jsou přítomny
     if (command != "ERR" || from != "FROM" || displayName.empty() || is != "IS") {
-        //cerr << "Invalid message format." << endl;
         string messageToSend = "ERR FROM server IS Invalid ERR command format.\r";
         sendMessage(getSocket(), messageToSend);
         byeMessage = "BYE\r";
@@ -49,9 +70,7 @@ void TCPClient::handleMessage(ClientBase* client, const char* buffer){
     string command, from, displayName, is;
     ss >> command >> from >> displayName >> is;
 
-    // Kontrola, zda všechny potřebné položky jsou přítomny
     if (command != "MSG" || from != "FROM" || displayName.empty() || is != "IS") {
-        //cerr << "Invalid message format." << endl;
         string messageToSend = "ERR FROM server IS Invalid MSG command format.\r";
         sendMessage(getSocket(), messageToSend);
         string byeMessage = "BYE\r";
@@ -81,8 +100,6 @@ void TCPClient::handleMessage(ClientBase* client, const char* buffer){
         string displayName = bufferStr.substr(secondSpacePos + 1, thirdSpacePos - secondSpacePos - 1);
 
         if (displayName != this->displayName) {
-            //cout << "DisplayName changed from " << this->displayName << " to " << displayName << endl;
-            
             prevDisplayName = this->displayName;
             this->displayName = displayName;
         }
@@ -115,7 +132,6 @@ void TCPClient::handleJoin(ClientBase* client, const char* buffer) {
 
     regex channelIDRegex("[A-Za-z0-9\\-]{1,20}");
 
-    // Check if command, channelID, as, and dName are not empty
     if (command != "JOIN" || !regex_match(channelID, channelIDRegex) || as != "AS" || dName.empty()) {
         cerr << "Invalid JOIN command format." << endl;
         string messageToSend = "ERR FROM server IS Invalid JOIN command format.\r";
@@ -152,12 +168,9 @@ void TCPClient::handleJoin(ClientBase* client, const char* buffer) {
     this->channelID = channelID;
     
     if (dName != this->displayName) {
-        //cout << "DisplayName changed from " << this->displayName << " to " << dName << endl;
-        
         prevDisplayName = this->displayName;
         this->displayName = dName;
     }
-    //cout << this->displayName << " joined channel " << channelID << endl;
 
     for (auto& c : clients) {
         TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
@@ -196,7 +209,6 @@ void TCPClient::handleAuth(ClientBase* client, const string &serverResponse){
         string replyMessage;
 
         if (checkUser(username, secret) && !isUserLoggedIn(username, this)) {
-            //cout << "New user " << username << " authenticated." << endl;
             cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
             replyMessage = "REPLY OK IS Auth success.\r\n";
             sendMessage(socket, replyMessage);
@@ -230,38 +242,12 @@ void TCPClient::handleAuth(ClientBase* client, const string &serverResponse){
                 replyMessage = "REPLY NOK IS Someone is already using this username\r\n";
                 cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "!REPLY" << endl;
             }
-            //cout << "Authentication failed for user " << username << "." << endl;
             sendMessage(socket, replyMessage);
         }
     } else {
-        //cout << "Invalid AUTH format." << endl;
         string messageToSend = "ERR FROM server IS Invalid AUTH command format.\r";
         sendMessage(getSocket(), messageToSend);
         string byeMessage = "BYE\r";
         sendMessage(getSocket(), byeMessage);
-    }
-}
-
-
-void TCPClient::handleTCPClient(ClientBase* client, const char* buffer) {
-    string bufferStr(buffer);
-
-    stringstream ss(bufferStr);
-    string command;
-    ss >> command;
-
-    if(isAuthenticated()){
-        if (command == "JOIN") {
-            handleJoin(client, buffer);
-            
-        } else if (command == "MSG") {
-            handleMessage(client, buffer);
-        } else if (command == "ERR") {
-            handleError(client, buffer);
-        }
-    } else {
-        if (command == "AUTH") {
-            handleAuth(client, bufferStr);
-        }
     }
 }

@@ -25,7 +25,7 @@ char* listen_ip = strdup("0.0.0.0");
 uint16_t port = 4567;
 int tcpServerSock, udpServerSock;
 
-pollfd fds[1000]; // max 10 clients for now
+pollfd fds[1000]; // max users
 int num_fds = 2;
 
 void signalHandler(int signum) {
@@ -64,7 +64,7 @@ bool checkUser(const string& username, const string& secret) {
     
     while (getline(file, line)) {
         
-        // Přeskočit řádky začínající znakem #
+        // skip line starting with #
         if (line.empty() || line[0] == '#') {
             continue;
         }
@@ -84,7 +84,6 @@ bool checkUser(const string& username, const string& secret) {
     
     return false; // User not found
 }
-
 
 void handleNewTCPClient(int serverSock, pollfd* fds, int& num_fds) {
     int clientSock = accept(serverSock, NULL, NULL);
@@ -125,18 +124,16 @@ void handleNewTCPClient(int serverSock, pollfd* fds, int& num_fds) {
     num_fds++;
 
     while (pos != string::npos) {
-        string authMessage = receivedData.substr(start, pos - start + 2);  // Include "\r\n"
+        string authMessage = receivedData.substr(start, pos - start + 2);
         tcpClient->handleTCPClient(tcpClient, authMessage.c_str());
 
         start = pos + 2;
         pos = receivedData.find("\r\n", start);
     }
 
-    // Store the remaining data in the client's buffer
     string remainingMessage = receivedData.substr(start);
     tcpClient->setReceivedBuffer(tcpClient->getReceivedBuffer() + remainingMessage);
 }
-
 
 void handleUDP(int serverSock, pollfd* fds, int& num_fds) {
     struct sockaddr_in clientAddr;
@@ -150,7 +147,6 @@ void handleUDP(int serverSock, pollfd* fds, int& num_fds) {
         return;
     } 
 
-    // user ip and port
     string clientIP = inet_ntoa(clientAddr.sin_addr);
     int clientPort = ntohs(clientAddr.sin_port);
     
@@ -165,12 +161,10 @@ void handleUDP(int serverSock, pollfd* fds, int& num_fds) {
         if (udpClient) {
             udpClient->handleUDPClient(udpClient, clientBuffer);
         } else {
-            cerr << "Chyba při přetypování klienta na UDPClient" << endl;
+            cerr << "Error when casting the client to UDPClient." << endl;
         }
     } 
     else {
-        //cout << "nový" << endl;
-            
         fds[num_fds].fd = serverSock;
         fds[num_fds].events = POLLIN;
         num_fds++;
@@ -314,8 +308,8 @@ int main(int argc, char *argv[]) {
         if (fds[0].revents & POLLIN) {
             handleNewTCPClient(tcpServerSock, fds, num_fds);
         }
+        // for already connected tcp clients
         for (int i = 0; i < num_fds; ++i) {
-            // Checking for incoming data
             if (fds[i].revents & POLLIN) {
                 if (fds[i].fd != udpServerSock && fds[i].fd != tcpServerSock) {
                     char buffer[1500];
@@ -324,7 +318,6 @@ int main(int argc, char *argv[]) {
                     if (bytesRead == -1) {
                         cerr << "Error reading from client socket" << endl;
                     } else if (bytesRead == 0) {
-                        //cout << "Client disconnected" << endl;
                         close(fds[i].fd);
                         fds[i] = fds[num_fds - 1];
                         num_fds--;
@@ -340,7 +333,7 @@ int main(int argc, char *argv[]) {
                             for (auto& c : clients) {
                                 TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
                                 if (tcpClient && tcpClient != *disconnectedClient && tcpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
-                                    string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " leaved channel\r";
+                                    string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " has left " + (*disconnectedClient)->getChannelID() + "\r";
                                     tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
                                 }
                             }
@@ -348,12 +341,12 @@ int main(int argc, char *argv[]) {
                             for (auto& c : clients) {
                                 UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
                                 if (udpClient && udpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
-                                    udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " leaved channel");
+                                    udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " has left " + (*disconnectedClient)->getChannelID());
                                 }
                             }
 
-                            delete *disconnectedClient;  // Freeing the memory
-                            clients.erase(disconnectedClient);  // Removing from the vector
+                            delete *disconnectedClient;
+                            clients.erase(disconnectedClient);
                         }
                     } else {
                         auto client = std::find_if(clients.begin(), clients.end(), [&](ClientBase* client) {
@@ -372,25 +365,23 @@ int main(int argc, char *argv[]) {
                                     tcpClient->setReceivedBuffer(tcpClient->getReceivedBuffer().substr(pos + 2));
                                 }
                             } else {
-                                cerr << "Chyba při přetypování klienta na TCPClient" << endl;
+                                cerr << "Error when casting the client to TCPClient." << endl;
                             }
                         } else {
-                            cerr << "Klient nenalezen" << endl;
+                            cerr << "Client not found" << endl;
                         }
                     }
                 }
             }
         }
-
-
+        
+        // checking to resend messgae to UDP clients
         for (auto it = sentMessages.begin(); it != sentMessages.end(); ) {
             auto& msg = *it;
             auto currentTime = std::chrono::steady_clock::now();
             auto timeDiff = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - msg.timer);
-            //cout << "Time difference: " << timeDiff.count() << " ms" << endl;
 
-            if (timeDiff.count() > counter) { // set later
-                // Check if `retries` for the current message is not zero
+            if (timeDiff.count() > counter) {
                 if (msg.retries > 0) {
                     auto clientUDP = std::find_if(clients.begin(), clients.end(), [&](ClientBase* client) {
                         UDPClient* udpClient = dynamic_cast<UDPClient*>(client);
@@ -401,18 +392,16 @@ int main(int argc, char *argv[]) {
                     });
 
                     if (clientUDP != clients.end()) {
-                        //cout << "Sending message to client with username: ";
                         UDPClient* udpClient = dynamic_cast<UDPClient*>(*clientUDP);
                         if (udpClient) {
-                            //cout << udpClient->getUsername() << endl;
                             udpClient->sendAgain(msg.content);
                             msg.retries--;
                             msg.timer = std::chrono::steady_clock::now();
                         } else {
-                            cerr << "Chyba při přetypování klienta na UDPClient" << endl;
+                            cerr << "Error when casting the client to UDPClient." << endl;
                         }
                     } else {
-                        cerr << "Klient nenalezen" << endl;
+                        cerr << "Client not found" << endl;
                         it = sentMessages.erase(it);
                         continue;
                     }
@@ -427,7 +416,7 @@ int main(int argc, char *argv[]) {
                         for (auto& c : clients) {
                             TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
                             if (tcpClient && tcpClient != *disconnectedClient && tcpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
-                                string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " leaved channel\r";
+                                string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " has left " + (*disconnectedClient)->getChannelID() + "\r";
                                 tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
                             }
                         }
@@ -435,16 +424,14 @@ int main(int argc, char *argv[]) {
                         for (auto& c : clients) {
                             UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
                             if (udpClient && udpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
-                                udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " leaved channel");
+                                udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " has left " + (*disconnectedClient)->getChannelID());
                             }
                         }
-                        delete *disconnectedClient;  // Freeing the memory
-                        clients.erase(disconnectedClient);  // Removing from the vector
+                        delete *disconnectedClient; 
+                        clients.erase(disconnectedClient);  
                     }
-
-                    // removing message
                     it = sentMessages.erase(it);
-                    continue; // Continue to the next iteration to avoid incrementing the iterator
+                    continue;
                 }
             }
             ++it;
