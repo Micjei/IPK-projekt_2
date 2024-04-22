@@ -11,6 +11,8 @@
 ## 1. Úvod
 
 - IPK projekt č. 2, zadání IOTU je navazující na projekt č. 1 [<a name="3" href="#IPK-projekt_1">3</a>].
+- Transmission Control Protocol (TCP) je spojovaný, spolehlivý protokol navržený pro přenos dat v modelu klient-server. TCP poskytuje rozsáhlé funkce pro zajištění spolehlivého a řízeného přenosu dat.
+- User Datagram Protocol (UDP) je nespojovaný, nespolehlivý protokol navržený pro rychlý přenos dat v síťových aplikacích, které nevyžadují spolehlivost. [<a name="1" href="#Project1">1</a>]
 - Jde o Klientský server, který je schopný spojit klienty, kteří se připojí pomocí udp nebo tcp protokolu a umožnit komunikaci mezi těmito klienty.
 
 - **Součástí je soubor `users.csv`, kde je potřeba napsat "registrované" uživatele ve formátu `username,secret,displayname`!**
