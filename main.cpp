@@ -21,6 +21,9 @@ vector<ClientBase*> clients;
 vector<MessageInfo> sentMessages;
 int retries = 3;
 int counter = 250;
+char* listen_ip = strdup("0.0.0.0");
+uint16_t port = 4567;
+int tcpServerSock, udpServerSock;
 
 pollfd fds[1000]; // max 10 clients for now
 int num_fds = 2;
@@ -38,6 +41,9 @@ void signalHandler(int signum) {
         }
 
         sentMessages.clear();
+        free(listen_ip);
+        close(tcpServerSock);
+        close(udpServerSock);
 
         exit(signum);
     }
@@ -179,11 +185,7 @@ void handleUDP(int serverSock, pollfd* fds, int& num_fds) {
 }
 
 int main(int argc, char *argv[]) {
-    int tcpServerSock, udpServerSock;
     struct sockaddr_in serverAddr;
-
-    char* listen_ip = nullptr;
-    uint16_t port = 4567;
     int opt;
     bool helpRequested = false;
     while ((opt = getopt(argc, argv, "l:p:d:r:h")) != -1) {
@@ -233,7 +235,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (helpRequested) {
-        cout << "Usage: ./ipk24chat-server -l [server address] -p [port number] -d [timer] -r [retries] " << endl;
+        cout << "Usage: ./ipk24chat-server -l [server address] -p [port number] -d [timer] -r [retries]" << endl;
         cout << "   Optional parameters:" << endl;
         cout << "     - `-p port`: port number (uint16, default value 4567)" << endl;
         cout << "     - `-d timer`: timer (uint16, default value 250 ms)" << endl;
@@ -242,11 +244,6 @@ int main(int argc, char *argv[]) {
         cout << endl;
         cout << "To close server use ctr+c to correct deallocate memmory" << endl;
         exit(0);
-    }
-
-    if (!listen_ip) {
-        cerr << "Listen IP address is not specified. Use -h for help" << endl;
-        exit(EXIT_FAILURE);
     }
 
     signal(SIGINT, signalHandler);
