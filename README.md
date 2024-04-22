@@ -13,7 +13,7 @@
 - IPK projekt č. 2, zadání IOTU je navazující na projekt č. 1 [<a name="3" href="#IPK-projekt_1">3</a>].
 - Jde o Klientský server, který je schopný spojit klienty, kteří se připojí pomocí udp nebo tcp protokolu a umožnit komunikaci mezi těmito klienty.
 
-- Součástí je soubor `users.csv`, kde je potřeba napsat "registrované" uživatele ve formátu `username,secret,displayname`!!!
+- **Součástí je soubor `users.csv`, kde je potřeba napsat "registrované" uživatele ve formátu `username,secret,displayname`!**
 
 ## 2. Použití
 

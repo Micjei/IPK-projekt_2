@@ -9,6 +9,8 @@
 
 using namespace std;
 
+// Descriptions were formalized using the ChatGPT tool.
+
 // Base class for common attributes
 class ClientBase {
 protected:
