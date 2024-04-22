@@ -13,6 +13,8 @@
 - IPK projekt č. 2, zadání IOTU je navazující na projekt č. 1 [<a name="3" href="#IPK-projekt_1">3</a>].
 - Jde o Klientský server, který je schopný spojit klienty, kteří se připojí pomocí udp nebo tcp protokolu a umožnit komunikaci mezi těmito klienty.
 
+- Součástí je soubor `users.csv`, kde je potřeba napsat "registrované" uživatele ve formátu `username,secret,displayname`!!!
+
 ## 2. Použití
 
 1. **instalace:**
@@ -58,7 +60,7 @@ Server jako svůj výstup na `stdout` vypisuje informace o přijatých zprávác
   <img src="diagrams/IPK_handleTCPClient.png" alt="IPK2">
 </p>    
 
-## Testování
+## 4. Testování
 
 - K testování byl použitý vytvořený klient v projektu č. 1 [<a name="3" href="#IPK-projekt_1">3</a>]. Pro ověření byly použiti klienti z projektu spolubydlicího, kteří nechtěl být jmenován. Testování probíhalo zapnutím serveru a postupným připojováním několika klientů. Bylo připojeno Několik UDP klientů a několik TCP klientů. Ti postupně zkoušeli `/auth` s neplatnými přihlašovacími údaji a poté s platnými údaji ale když už dané `username` někdo jiný používá. Zkoušel jsem `/join`, `/rename` a poté `/join`, kde program rozpoznal klienta, jenom s jiným `username`. Program vypisuje všem klientům, kromě daného `{DisplayName} has left {ChannelID}` nebo `{DisplayName} has joined {ChannelID}` [<a name="2" href="#Project2">2</a>]. Bylo testováno, zda program korektně odpovídá UDP klientům zprávou `CONFIRM` po přijetí zprávy a zda po odpojení Klienta ruší jeho objekt a znovuzpřístupní jeho přihlašovací údaje pro opětovné připojení (UDP i TCP).
 
@@ -67,7 +69,7 @@ Server jako svůj výstup na `stdout` vypisuje informace o přijatých zprávác
   <img src="diagrams/testing.png" alt="IPK2">
 </p>
 
-## Bibliografie
+## 5. Bibliografie
 
 [<a name="Project1"></a><a href="#1">1</a>] [Project1] Dolejška, D. Client for a chat server using IPK24-CHAT protocol [online]. February 2024. [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%201
 
