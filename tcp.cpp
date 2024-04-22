@@ -20,8 +20,45 @@
 
 using namespace std;
 
-void TCPClient::handleMessage(ClientBase* client, char* buffer){
+void TCPClient::handleError(ClientBase* client, const char* buffer){
     string bufferStr(buffer);
+
+    stringstream ss(bufferStr);
+    string command, from, displayName, is;
+    ss >> command >> from >> displayName >> is;
+
+    string byeMessage;
+    // Kontrola, zda všechny potřebné položky jsou přítomny
+    if (command != "ERR" || from != "FROM" || displayName.empty() || is != "IS") {
+        //cerr << "Invalid message format." << endl;
+        string messageToSend = "ERR FROM server IS Invalid ERR command format.\r";
+        sendMessage(getSocket(), messageToSend);
+        byeMessage = "BYE\r";
+        sendMessage(getSocket(), byeMessage);
+        return;
+    }
+
+    byeMessage = "BYE\r";    
+    sendMessage(getSocket(), byeMessage);
+}
+
+void TCPClient::handleMessage(ClientBase* client, const char* buffer){
+    string bufferStr(buffer);
+
+    stringstream ss(bufferStr);
+    string command, from, displayName, is;
+    ss >> command >> from >> displayName >> is;
+
+    // Kontrola, zda všechny potřebné položky jsou přítomny
+    if (command != "MSG" || from != "FROM" || displayName.empty() || is != "IS") {
+        //cerr << "Invalid message format." << endl;
+        string messageToSend = "ERR FROM server IS Invalid MSG command format.\r";
+        sendMessage(getSocket(), messageToSend);
+        string byeMessage = "BYE\r";
+        sendMessage(getSocket(), byeMessage);
+        return;
+    }
+
     size_t firstSpacePos = bufferStr.find_first_of(" \t\r\n");
     size_t secondSpacePos = bufferStr.find_first_of(" \t\r\n", firstSpacePos + 1);
     size_t thirdSpacePos = bufferStr.find_first_of(" \t\r\n", secondSpacePos + 1);
@@ -30,14 +67,21 @@ void TCPClient::handleMessage(ClientBase* client, char* buffer){
     if (fourthSpacePos != string::npos && fourthSpacePos + 1 < bufferStr.length()) {
         string content = bufferStr.substr(fourthSpacePos + 1, bufferStr.length() - fourthSpacePos - 3);
 
-        /*if (!content.empty() && content.back() == '\r') {
-            content.pop_back(); 
-        }*/
+        regex contentRegex("[\\x21-\\x7E ]{1,1400}");
+
+        if (!regex_match(content, contentRegex)) {
+            cerr << "Invalid content format." << endl;
+            string messageToSend = "ERR FROM server IS Invalid content format.\r";
+            sendMessage(getSocket(), messageToSend);
+            string byeMessage = "BYE\r";
+            sendMessage(getSocket(), byeMessage);
+            return;
+        }
 
         string displayName = bufferStr.substr(secondSpacePos + 1, thirdSpacePos - secondSpacePos - 1);
 
         if (displayName != this->displayName) {
-            cout << "DisplayName changed from " << this->displayName << " to " << displayName << endl;
+            //cout << "DisplayName changed from " << this->displayName << " to " << displayName << endl;
             
             prevDisplayName = this->displayName;
             this->displayName = displayName;
@@ -49,6 +93,7 @@ void TCPClient::handleMessage(ClientBase* client, char* buffer){
             TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
             if (tcpClient && tcpClient != this && tcpClient->getChannelID() == this->getChannelID()) {
                 string messageToSend = "MSG FROM " + this->displayName + " IS " + content + "\r";
+                cout << "SENT " << ipAddress << ":" << port <<  " | " << "MSG " << content << endl;
                 tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
             }
         }
@@ -59,35 +104,40 @@ void TCPClient::handleMessage(ClientBase* client, char* buffer){
                 udpClient->sendMessage(this->displayName, content);
             }
         }
-    } else {
-        cout << "Invalid message format." << endl;
     }
 }
 
-void TCPClient::handleJoin(ClientBase* client, char* buffer) {
+void TCPClient::handleJoin(ClientBase* client, const char* buffer) {
     string bufferStr(buffer);
     stringstream ss(bufferStr);
     string command, channelID, as, dName;
     ss >> command >> channelID >> as >> dName;
 
+    regex channelIDRegex("[A-Za-z0-9\\-]{1,20}");
+
+    // Check if command, channelID, as, and dName are not empty
+    if (command != "JOIN" || !regex_match(channelID, channelIDRegex) || as != "AS" || dName.empty()) {
+        cerr << "Invalid JOIN command format." << endl;
+        string messageToSend = "ERR FROM server IS Invalid JOIN command format.\r";
+        sendMessage(getSocket(), messageToSend);
+        string byeMessage = "BYE\r";
+        sendMessage(getSocket(), byeMessage);
+        return;
+    }
+
+    cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "JOIN " << channelID << endl;
+    
     int sock = getSocket();
 
     string replyMessage = "REPLY OK IS nice\r\n";
+    cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
     send(sock, replyMessage.c_str(), replyMessage.length(), 0);
-    this->channelID = channelID;
-    
-    if (dName != this->displayName) {
-        cout << "DisplayName changed from " << this->displayName << " to " << dName << endl;
-        
-        prevDisplayName = this->displayName;
-        this->displayName = dName;
-    }
-    cout << this->displayName << " joined channel " << channelID << endl;
 
     for (auto& c : clients) {
         TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
         if (tcpClient && tcpClient != this && tcpClient->getChannelID() == this->getChannelID()) {
-            string messageToSend = "MSG FROM server IS " + this->displayName + " joined channel" + "\r";
+            string messageToSend = "MSG FROM server IS " + this->displayName + " has left " + tcpClient->getChannelID() + "\r";
+            cout << "SENT " << ipAddress << ":" << port <<  " | " << "MSG " << this->displayName << " has left " << tcpClient->getChannelID() << endl;
             tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
         }
     }
@@ -95,30 +145,123 @@ void TCPClient::handleJoin(ClientBase* client, char* buffer) {
     for (auto& c : clients) {
         UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
         if (udpClient && udpClient->getChannelID() == this->getChannelID()) {
-            udpClient->sendMessage(this->displayName, "joined channel");
+            udpClient->sendMessage("server", displayName + " has left " + udpClient->getChannelID());
+        }
+    }
+
+    this->channelID = channelID;
+    
+    if (dName != this->displayName) {
+        //cout << "DisplayName changed from " << this->displayName << " to " << dName << endl;
+        
+        prevDisplayName = this->displayName;
+        this->displayName = dName;
+    }
+    //cout << this->displayName << " joined channel " << channelID << endl;
+
+    for (auto& c : clients) {
+        TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
+        if (tcpClient && tcpClient != this && tcpClient->getChannelID() == this->getChannelID()) {
+            string messageToSend = "MSG FROM server IS " + this->displayName + " has joined " + tcpClient->getChannelID() + "\r";
+            cout << "SENT " << ipAddress << ":" << port <<  " | " << "MSG " << this->displayName << " has joined " << tcpClient->getChannelID() << endl;
+            tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
+        }
+    }
+
+    for (auto& c : clients) {
+        UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
+        if (udpClient && udpClient->getChannelID() == this->getChannelID()) {
+            udpClient->sendMessage("server", displayName + " has joined " + udpClient->getChannelID());
         }
     }
 }
 
 void TCPClient::sendMessage(int sock, const string& messageToSend){
-    send(sock, messageToSend.c_str(), messageToSend.length(), 0);
+    ssize_t bytesSent = send(sock, messageToSend.c_str(), messageToSend.length(), 0);
+    if (bytesSent == -1) {
+        cerr << "Error sending message" << endl;
+    }
 }
 
-void TCPClient::handleTCPClient(ClientBase* client, char* buffer) {
-    // Implementation of handleTCPClient
-    cout << "tcp" << endl;
+void TCPClient::handleAuth(ClientBase* client, const string &serverResponse){
+    cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "AUTH" << endl;
+    regex authRegex("^AUTH ([A-Za-z0-9\\-]{1,20}) AS ([\\x21-\\x7E]{1,20}) USING ([A-Za-z0-9\\-]{1,128})\r\n$");
+    smatch match;
 
+    if (regex_match(serverResponse, match, authRegex)) {
+
+        string username = match[1];
+        string displayName = match[2];
+        string secret = match[3];
+        string replyMessage;
+
+        if (checkUser(username, secret) && !isUserLoggedIn(username, this)) {
+            //cout << "New user " << username << " authenticated." << endl;
+            cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
+            replyMessage = "REPLY OK IS nice\r\n";
+            sendMessage(socket, replyMessage);
+            this->username = username;
+            this->displayName = displayName;
+            this->channelID = "default";
+            this->setAuthenticated(true);
+
+            for (auto& c : clients) {
+                TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
+                if (tcpClient && tcpClient != this && tcpClient->getChannelID() == this->getChannelID()) {
+                    string messageToSend = "MSG FROM server IS " + this->displayName + " has joined " + tcpClient->getChannelID() + "\r";
+                    cout << "SENT " << ipAddress << ":" << port <<  " | " << "MSG " << this->displayName << " has joined " << tcpClient->getChannelID() << endl;
+                    tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
+                }
+            }
+
+            for (auto& c : clients) {
+                UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
+                if (udpClient && udpClient->getChannelID() == this->getChannelID()) {
+                    udpClient->sendMessage("server", displayName + " has joined " + udpClient->getChannelID());
+                }
+            }
+        }
+        else {
+            if (!isUserLoggedIn(username, this)) {
+                replyMessage = "REPLY NOK IS unregistered username\r\n";
+                cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "!REPLY" << endl;
+            }
+            else {
+                replyMessage = "REPLY NOK IS Someone is already using this username\r\n";
+                cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "!REPLY" << endl;
+            }
+            //cout << "Authentication failed for user " << username << "." << endl;
+            sendMessage(socket, replyMessage);
+        }
+    } else {
+        //cout << "Invalid AUTH format." << endl;
+        string messageToSend = "ERR FROM server IS Invalid AUTH command format.\r";
+        sendMessage(getSocket(), messageToSend);
+        string byeMessage = "BYE\r";
+        sendMessage(getSocket(), byeMessage);
+    }
+}
+
+
+void TCPClient::handleTCPClient(ClientBase* client, const char* buffer) {
     string bufferStr(buffer);
 
     stringstream ss(bufferStr);
     string command;
     ss >> command;
 
-    if (command == "JOIN") {
-        cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "JOIN" << endl;
-        handleJoin(client, buffer);
-        
-    } else if (command == "MSG") {
-        handleMessage(client, buffer);
+    if(isAuthenticated()){
+        if (command == "JOIN") {
+            handleJoin(client, buffer);
+            
+        } else if (command == "MSG") {
+            handleMessage(client, buffer);
+        } else if (command == "ERR") {
+            handleError(client, buffer);
+        }
+    } else {
+        if (command == "AUTH") {
+            handleAuth(client, bufferStr);
+        }
     }
 }
