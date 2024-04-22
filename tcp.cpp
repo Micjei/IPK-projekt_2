@@ -236,11 +236,11 @@ void TCPClient::handleAuth(ClientBase* client, const string &serverResponse){
         else {
             if (!isUserLoggedIn(username, this)) {
                 replyMessage = "REPLY NOK IS unregistered username\r\n";
-                cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "!REPLY" << endl;
+                cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
             }
             else {
                 replyMessage = "REPLY NOK IS Someone is already using this username\r\n";
-                cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "!REPLY" << endl;
+                cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
             }
             sendMessage(socket, replyMessage);
         }

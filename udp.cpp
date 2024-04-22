@@ -416,7 +416,7 @@ void UDPClient::sendReplyMessage(uint16_t refMessageID, bool success, const stri
     if(success){
         cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " << "REPLY" << endl;
     } else {
-        cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " << "!REPLY" << endl;
+        cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " << "REPLY" << endl;
     }
 
     MessageInfo messageSent;
