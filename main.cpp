@@ -424,6 +424,20 @@ int main(int argc, char *argv[]) {
                     });
 
                     if (disconnectedClient != clients.end()) {
+                        for (auto& c : clients) {
+                            TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
+                            if (tcpClient && tcpClient != *disconnectedClient && tcpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
+                                string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " leaved channel\r";
+                                tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
+                            }
+                        }
+
+                        for (auto& c : clients) {
+                            UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
+                            if (udpClient && udpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
+                                udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " leaved channel");
+                            }
+                        }
                         delete *disconnectedClient;  // Freeing the memory
                         clients.erase(disconnectedClient);  // Removing from the vector
                     }

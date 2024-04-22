@@ -165,7 +165,7 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
         this->displayName = displayName;
         this->channelID = "default";
         this->setAuthenticated(true);
-        string replyContent = "Good\n";
+        string replyContent = "Auth success.\n";
         sendReplyMessage(messageID, true, replyContent);
 
         for (auto& c : clients) {
@@ -185,7 +185,7 @@ void UDPClient::handleAuth(uint16_t messageID, UDPClient* udpClient, char* clien
         }
     } else {
         if(!isUserLoggedIn(username, this)){
-            replyContent = "Not Good\n";
+            replyContent = "Auth failure.\n";
         }
         else{
             replyContent = "Someone is already using this username\r\n";
@@ -216,6 +216,20 @@ void UDPClient::handleConfirmMessage(UDPClient* udpClient, char* buffer){
             //cout << "Message with messageID " << refMessageID << " and username " << this->username << " confirmed as BYE and removed." << endl;
 
             if (disconnectedClient != clients.end()) {
+                for (auto& c : clients) {
+                    TCPClient* tcpClient = dynamic_cast<TCPClient*>(c);
+                    if (tcpClient && tcpClient != *disconnectedClient && tcpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
+                        string messageToSend = "MSG FROM server IS " + (*disconnectedClient)->getDisplayName() + " leaved channel\r";
+                        tcpClient->sendMessage(tcpClient->getSocket(), messageToSend);
+                    }
+                }
+
+                for (auto& c : clients) {
+                    UDPClient* udpClient = dynamic_cast<UDPClient*>(c);
+                    if (udpClient && udpClient->getChannelID() == (*disconnectedClient)->getChannelID()) {
+                        udpClient->sendMessage("server", (*disconnectedClient)->getDisplayName() + " leaved channel");
+                    }
+                }
                 delete *disconnectedClient;  // Freeing the memory
                 clients.erase(disconnectedClient);  // Removing from the vector
             }
@@ -290,7 +304,7 @@ void UDPClient::handleJoinMessage(UDPClient* udpClient, char* buffer){
     }
 
     cout << "RECV " << this->ipAddress << ":" << this->port <<  " | " << "JOIN " << channelID << endl;
-    cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
+    //cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
 
     int displayNameStart = channelIDEnd + 1;
     int displayNameEnd = displayNameStart;
@@ -310,7 +324,7 @@ void UDPClient::handleJoinMessage(UDPClient* udpClient, char* buffer){
     }
 
     sendConfirmMessage(refMessageID);
-    string replyContent = "nice\n";
+    string replyContent = "Join success.\n";
     sendReplyMessage(refMessageID, true, replyContent);
 
     for (auto& c : clients) {

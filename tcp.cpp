@@ -129,7 +129,7 @@ void TCPClient::handleJoin(ClientBase* client, const char* buffer) {
     
     int sock = getSocket();
 
-    string replyMessage = "REPLY OK IS nice\r\n";
+    string replyMessage = "REPLY OK IS Join success.\r\n";
     cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
     send(sock, replyMessage.c_str(), replyMessage.length(), 0);
 
@@ -198,7 +198,7 @@ void TCPClient::handleAuth(ClientBase* client, const string &serverResponse){
         if (checkUser(username, secret) && !isUserLoggedIn(username, this)) {
             //cout << "New user " << username << " authenticated." << endl;
             cout << "SENT " << this->ipAddress << ":" << this->port <<  " | " <<  "REPLY" << endl;
-            replyMessage = "REPLY OK IS nice\r\n";
+            replyMessage = "REPLY OK IS Auth success.\r\n";
             sendMessage(socket, replyMessage);
             this->username = username;
             this->displayName = displayName;
