@@ -10,7 +10,7 @@
 
 ## 1. Úvod
 
-- IPK projekt č. 2, zadání IOTU je navazující na projekt č. 1 [<a href="#IPK-projekt_1">3</a>].
+- IPK projekt č. 2, zadání IOTU je navazující na projekt č. 1 [\[3\]].
 - Jde o Klientský server, který je schopný spojit klienty, kteří se připojí pomocí udp nebo tcp protokolu a umožnit komunikaci mezi těmito klienty.
 
 ## 2. Použití
@@ -34,7 +34,7 @@ Po zapnutí serveru a případného nastavení parametrů se vytvoří UDP a TCP
 <p align="center">
   <img src="diagrams/auth_join_mess.png" alt="IPK2">
 </p>
-[<a href="#Project2">2</a>].
+[\[2\]]
 
 **Struktura main**
 <p align="center">
@@ -53,10 +53,17 @@ Po zapnutí serveru a případného nastavení parametrů se vytvoří UDP a TCP
 
 ## Testování
 
-- K testování byl použitý vytvořený klient v projektu č. 1 [<a href="#IPK-projekt_1">3</a>]. Pro ověření byly použiti klienti z projektu spolubydlicího, kteří nechtěl být jmenován.
+- K testování byl použitý vytvořený klient v projektu č. 1 [\[3\]]. Pro ověření byly použiti klienti z projektu spolubydlicího, kteří nechtěl být jmenován.
 
 ## Bibliografie
 
-[1][Project1] Dolejška, D. Client for a chat server using IPK24-CHAT protocol [online]. February 2024. [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%201
-[2][Project2] Dolejška, D. Chat server using IPK24-CHAT protocol [online]. February 2024. [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%202/iota
-[3][IPK-projekt_1] xbabus01 Client for a chat server using IPK24-CHAT protocol [online]. April 2024. [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/xbabus01/IPK-projekt_1
+## Bibliografie
+
+[1][Project1] Dolejška, D. Client for a chat server using IPK24-CHAT protocol [online]. February 2024.  
+[cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%201
+
+[2][Project2] Dolejška, D. Chat server using IPK24-CHAT protocol [online]. February 2024.  
+[cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%202/iota
+
+[3][IPK-projekt_1] xbabus01 Client for a chat server using IPK24-CHAT protocol [online]. April 2024.  
+[cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/xbabus01/IPK-projekt_1
