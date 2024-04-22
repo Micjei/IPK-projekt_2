@@ -10,7 +10,7 @@
 
 ## 1. Úvod
 
-- IPK projekt č. 2, zadání IOTU je navazující na projekt č. 1 \[3\].
+- IPK projekt č. 2, zadání IOTU je navazující na projekt č. 1 [<a href="#IPK-projekt_1">3</a>].
 - Jde o Klientský server, který je schopný spojit klienty, kteří se připojí pomocí udp nebo tcp protokolu a umožnit komunikaci mezi těmito klienty.
 
 ## 2. Použití
@@ -54,9 +54,7 @@ Po zapnutí serveru a případného nastavení parametrů se vytvoří UDP a TCP
 
 ## Testování
 
-- K testování byl použitý vytvořený klient v projektu č. 1 [\[3\]]. Pro ověření byly použiti klienti z projektu spolubydlicího, kteří nechtěl být jmenován.
-
-## Bibliografie
+- K testování byl použitý vytvořený klient v projektu č. 1 [<a href="#IPK-projekt_1">3</a>]. Pro ověření byly použiti klienti z projektu spolubydlicího, kteří nechtěl být jmenován.
 
 ## Bibliografie
 
@@ -65,6 +63,8 @@ Po zapnutí serveru a případného nastavení parametrů se vytvoří UDP a TCP
 
 [2][Project2] Dolejška, D. Chat server using IPK24-CHAT protocol [online]. February 2024.  
 [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%202/iota
+
+<a name="IPK-projekt_1"></a>
 
 [3][IPK-projekt_1] xbabus01 Client for a chat server using IPK24-CHAT protocol [online]. April 2024.  
 [cited 2024-04-22]. Available at: https://git.fit.vutbr.cz/xbabus01/IPK-projekt_1
